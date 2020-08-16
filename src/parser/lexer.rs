@@ -106,7 +106,7 @@ impl<'a> Lexer<'a> {
     fn next_token(&mut self) -> Result<Token, String> {
         while self.cursor.current_char != EOF {
             match self.cursor.current_char {
-                ' ' | '\t' | '\r' => {
+                ' ' | '\t' | '\n' | '\r' => {
                     self.whitespace();
                     continue;
                 }
