@@ -1,6 +1,3 @@
-use std::fmt::{Display, Formatter};
-use std::result;
-
 const TOKEN_NAMES: [&str; 9] = [
     "n/a", "<EOF>", "FILE", "LINE", "LBRACK", "RBRACK", "ALIAS", "PATH", "FSLASH",
 ];
@@ -21,17 +18,17 @@ struct Token {
     /// The specific atom this token represents.
     kind: i32,
     /// The particular text associated with this token when it was parsed.
-    text: &'static str,
+    text: String,
 }
 
 impl Token {
-    fn new(kind: i32, text: &'static str) -> Token {
-        Token { kind, text }
+    fn new(kind: i32, text: &str) -> Token {
+        Token { kind, text: text.to_string() }
     }
 }
 
-impl Display for Token {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+impl std::fmt::Display for Token {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "<'{}', {}>", self.text, TOKEN_NAMES[self.kind as usize])
     }
 }
@@ -68,7 +65,7 @@ impl Cursor {
         }
     }
 
-    fn matches(&mut self, c: char) -> result::Result<char, String> {
+    fn matches(&mut self, c: char) -> Result<char, String> {
         if self.current_char == c {
             self.consume();
             return Ok(self.current_char);
@@ -98,17 +95,65 @@ impl<'a> Lexer<'a> {
         self.token_names[i].to_string()
     }
 
-    fn is_not_nul(&self) -> bool {
-        return self.cursor.current_char != '\0';
+    fn is_line_feed(&self) -> bool {
+        return self.cursor.current_char == '\n'
+    }
+
+    fn is_alphanumeric(&self) -> bool {
+        self.cursor.current_char.is_ascii_alphanumeric()
+    }
+
+    fn next_token(&mut self) -> Result<Token, String> {
+        while self.cursor.current_char != EOF {
+            match self.cursor.current_char {
+                ' ' | '\t' | '\r' => {
+                    self.whitespace();
+                    continue;
+                }
+                '[' => {
+                    self.cursor.consume();
+                    return Ok(Token::new(TOKEN_LBRACK, "["));
+                }
+                ']' => {
+                    self.cursor.consume();
+                    return Ok(Token::new(TOKEN_RBRACK, "]"));
+                }
+                _ => {
+                    if self.is_alphanumeric() {
+                        return self.alias();
+                    } else if self.is_line_feed() {
+                        return self.path();
+                    }
+                    return Err(format!("invalid character {}", self.cursor.current_char));
+                }
+            }
+        }
+
+        Ok(Token::new(TOKEN_EOF, "<EOF"))
     }
 
     fn whitespace(&mut self) {
-        while self.cursor.current_char == ' ' ||
-            self.cursor.current_char == '\t' ||
-            self.cursor.current_char == '\n' ||
-            self.cursor.current_char == '\r' {
+        while self.cursor.current_char.is_whitespace() {
             self.cursor.consume()
         }
+    }
+
+    fn alias(&mut self) -> Result<Token, String> {
+        let mut p = String::new();
+        while self.is_alphanumeric() {
+            p.push(self.cursor.current_char);
+            self.cursor.consume();
+        }
+        Ok(Token::new(TOKEN_ALIAS, p.as_str()))
+    }
+
+    fn path(&mut self) -> Result<Token, String> {
+        let mut p = String::new();
+        while !self.is_line_feed() {
+            p.push(self.cursor.current_char);
+            self.cursor.consume();
+        }
+        Ok(Token::new(TOKEN_PATH, p.as_str()))
     }
 }
 
@@ -174,15 +219,15 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer_detects_non_nul_characters() {
+    fn test_lexer_does_not_detect_non_line_feed_character() {
         let lexer = Lexer::new("test", 0, 't');
-        assert!(lexer.is_not_nul(), "current character was NUL");
+        assert!(!lexer.is_line_feed(), "current character was LINE FEED");
     }
 
     #[test]
-    fn test_lexer_detects_nul_characters() {
-        let lexer = Lexer::new("test", 0, '\0');
-        assert!(!lexer.is_not_nul(), "current character was not NUL");
+    fn test_lexer_detects_line_feed_character() {
+        let lexer = Lexer::new("\n", 0, '\n');
+        assert!(lexer.is_line_feed(), "current character was not a LINE FEED");
     }
 
     #[test]
@@ -190,5 +235,41 @@ mod tests {
         let mut lexer = Lexer::new("   test", 0, ' ');
         lexer.whitespace();
         assert_eq!('t', lexer.cursor.current_char);
+    }
+
+    #[test]
+    fn test_lexer_can_check_is_alphanumeric() {
+        let lexer = Lexer::new("test0123", 0, 't');
+        assert!(lexer.is_alphanumeric());
+    }
+
+    #[test]
+    fn test_lexer_can_check_is_alphanumeric_fails() {
+        let lexer = Lexer::new("_", 0, '_');
+        assert!(!lexer.is_alphanumeric());
+    }
+
+    #[test]
+    fn test_lexer_creates_alias_token() {
+        let mut lexer = Lexer::new("alias", 0, 'a');
+        match lexer.alias() {
+            Ok(token) => {
+                assert_eq!(TOKEN_ALIAS, token.kind);
+                assert_eq!("alias", token.text);
+            }
+            Err(_) => panic!("lexer panicked while creating alias")
+        }
+    }
+
+    #[test]
+    fn test_lexer_creates_path_token() {
+        let mut lexer = Lexer::new("/some/absolute/path\n", 0, '/');
+        match lexer.path() {
+            Ok(token) => {
+                assert_eq!(TOKEN_PATH, token.kind);
+                assert_eq!("/some/absolute/path", token.text);
+            }
+            Err(_) => panic!("lexer panicked while creating path")
+        }
     }
 }
