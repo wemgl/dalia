@@ -9,7 +9,7 @@ const TOKEN_LBRACK: i32 = 4;
 const TOKEN_RBRACK: i32 = 5;
 const TOKEN_ALIAS: i32 = 6;
 const TOKEN_PATH: i32 = 7;
-const TOKEN_FLASH: i32 = 8;
+const TOKEN_FSLASH: i32 = 8;
 
 const EOF: char = !0 as char;
 
@@ -58,13 +58,13 @@ impl Cursor {
         self.pointer += 1;
         if self.pointer >= self.input.len() {
             self.current_char = EOF;
-        } else {
-            if let Some(c) = self.input.chars().nth(self.pointer) {
-                self.current_char = c
-            }
+        } else if let Some(c) = self.input.chars().nth(self.pointer) {
+            self.current_char = c
         }
     }
 
+    /// Checks if the character parameter matches the current one stored by the cursor and
+    /// returns the updated current character.
     fn matches(&mut self, c: char) -> Result<char, String> {
         if self.current_char == c {
             self.consume();
@@ -74,6 +74,7 @@ impl Cursor {
     }
 }
 
+/// Creates and identifies tokens using the underlying cursor.
 struct Lexer<'a> {
     cursor: Cursor,
     token_names: [&'a str; 9],
@@ -96,7 +97,7 @@ impl<'a> Lexer<'a> {
     }
 
     fn is_line_feed(&self) -> bool {
-        return self.cursor.current_char == '\n'
+        return self.cursor.current_char == '\n';
     }
 
     fn is_alphanumeric(&self) -> bool {
