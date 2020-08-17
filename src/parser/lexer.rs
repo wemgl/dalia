@@ -1,30 +1,32 @@
-const TOKEN_NAMES: [&str; 9] = [
-    "n/a", "<EOF>", "FILE", "LINE", "LBRACK", "RBRACK", "ALIAS", "PATH", "FSLASH",
+const TOKEN_NAMES: [&str; 8] = [
+    "n/a", "<EOF>", "FILE", "LINE", "LBRACK", "RBRACK", "ALIAS", "PATH",
 ];
 
-const TOKEN_EOF: i32 = 1;
-const TOKEN_FILE: i32 = 2;
-const TOKEN_LINE: i32 = 3;
-const TOKEN_LBRACK: i32 = 4;
-const TOKEN_RBRACK: i32 = 5;
-const TOKEN_ALIAS: i32 = 6;
-const TOKEN_PATH: i32 = 7;
-const TOKEN_FSLASH: i32 = 8;
+pub(crate) const TOKEN_EOF: i32 = 1;
+pub(crate) const TOKEN_FILE: i32 = 2;
+pub(crate) const TOKEN_LINE: i32 = 3;
+pub(crate) const TOKEN_LBRACK: i32 = 4;
+pub(crate) const TOKEN_RBRACK: i32 = 5;
+pub(crate) const TOKEN_ALIAS: i32 = 6;
+pub(crate) const TOKEN_PATH: i32 = 7;
 
 const EOF: char = !0 as char;
 
 /// Token identifies a text and the kind of token it represents.
 #[derive(Debug, Eq, PartialEq)]
-struct Token {
+pub(crate) struct Token {
     /// The specific atom this token represents.
-    kind: i32,
+    pub(crate) kind: i32,
     /// The particular text associated with this token when it was parsed.
     text: String,
 }
 
 impl Token {
-    fn new(kind: i32, text: &str) -> Token {
-        Token { kind, text: text.to_string() }
+    pub(crate) fn new(kind: i32, text: &str) -> Self {
+        Self {
+            kind,
+            text: text.to_string(),
+        }
     }
 }
 
@@ -35,7 +37,8 @@ impl std::fmt::Display for Token {
 }
 
 /// Cursor allows traversing through an input String character by character while lexing.
-struct Cursor {
+#[derive(Debug)]
+pub(crate) struct Cursor {
     /// The input String being processed.
     input: String,
     /// A pointer to the current character.
@@ -46,8 +49,8 @@ struct Cursor {
 
 impl Cursor {
     /// Constructs a new Cursor.
-    fn new(input: &str, pointer: usize, c: char) -> Cursor {
-        Cursor {
+    fn new(input: &str, pointer: usize, c: char) -> Self {
+        Self {
             input: input.to_string(),
             pointer,
             current_char: c,
@@ -76,14 +79,15 @@ impl Cursor {
 }
 
 /// Creates and identifies tokens using the underlying cursor.
-struct Lexer<'a> {
-    cursor: Cursor,
-    token_names: [&'a str; 9],
+#[derive(Debug)]
+pub(crate) struct Lexer<'a> {
+    pub(crate) cursor: Cursor,
+    token_names: [&'a str; 8],
 }
 
 impl<'a> Lexer<'a> {
-    fn new(input: &str, pointer: usize, c: char) -> Lexer {
-        Lexer {
+    pub(crate) fn new(input: &str, pointer: usize, c: char) -> Self {
+        Self {
             cursor: Cursor {
                 input: input.to_string(),
                 pointer,
@@ -93,7 +97,7 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn token_names(&self, i: usize) -> String {
+    pub(crate) fn token_names(&self, i: usize) -> String {
         self.token_names[i].to_string()
     }
 
@@ -105,7 +109,7 @@ impl<'a> Lexer<'a> {
         self.cursor.current_char.is_ascii_alphanumeric()
     }
 
-    fn next_token(&mut self) -> Result<Token, String> {
+    pub(crate) fn next_token(&mut self) -> Result<Token, String> {
         while self.cursor.current_char != EOF {
             match self.cursor.current_char {
                 ' ' | '\t' | '\n' | '\r' => {
@@ -200,7 +204,7 @@ mod tests {
         let mut cur = Cursor::new("test", 0, 't');
         match cur.matches('t') {
             Ok(r) => assert_eq!('e', r),
-            Err(e) => panic!(e)
+            Err(e) => panic!(e),
         }
     }
 
@@ -209,7 +213,7 @@ mod tests {
         let mut cur = Cursor::new("test", 0, 't');
         match cur.matches('x') {
             Ok(_) => panic!("should not be okay"),
-            Err(e) => assert_eq!("expecting x, but found t", e)
+            Err(e) => assert_eq!("expecting x, but found t", e),
         }
     }
 
@@ -223,7 +227,10 @@ mod tests {
     #[test]
     fn test_lexer_detects_line_feed_character() {
         let lexer = Lexer::new("\n", 0, '\n');
-        assert!(!lexer.is_not_newline(), "current character was not a LINE FEED");
+        assert!(
+            !lexer.is_not_newline(),
+            "current character was not a LINE FEED"
+        );
     }
 
     #[test]
@@ -259,7 +266,7 @@ mod tests {
                 assert_eq!(TOKEN_ALIAS, token.kind);
                 assert_eq!("alias", token.text);
             }
-            Err(_) => panic!("lexer panicked while creating alias")
+            Err(_) => panic!("lexer panicked while creating alias"),
         }
     }
 
@@ -271,7 +278,7 @@ mod tests {
                 assert_eq!(TOKEN_PATH, token.kind);
                 assert_eq!("/some/absolute/path", token.text);
             }
-            Err(_) => panic!("lexer panicked while creating path")
+            Err(_) => panic!("lexer panicked while creating path"),
         }
     }
 
@@ -284,7 +291,7 @@ mod tests {
         let mut tokens: Vec<Token> = Vec::new();
         while let Ok(t) = lexer.next_token() {
             if t.kind == TOKEN_EOF {
-                break
+                break;
             }
             tokens.push(t);
         }
