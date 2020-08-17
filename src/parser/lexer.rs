@@ -14,6 +14,7 @@ const TOKEN_FSLASH: i32 = 8;
 const EOF: char = !0 as char;
 
 /// Token identifies a text and the kind of token it represents.
+#[derive(Debug, Eq, PartialEq)]
 struct Token {
     /// The specific atom this token represents.
     kind: i32,
@@ -96,8 +97,8 @@ impl<'a> Lexer<'a> {
         self.token_names[i].to_string()
     }
 
-    fn is_line_feed(&self) -> bool {
-        return self.cursor.current_char == '\n';
+    fn is_not_newline(&self) -> bool {
+        return self.cursor.current_char != '\n';
     }
 
     fn is_alphanumeric(&self) -> bool {
@@ -122,7 +123,7 @@ impl<'a> Lexer<'a> {
                 _ => {
                     if self.is_alphanumeric() {
                         return self.alias();
-                    } else if self.is_line_feed() {
+                    } else if self.is_not_newline() {
                         return self.path();
                     }
                     return Err(format!("invalid character {}", self.cursor.current_char));
@@ -150,7 +151,7 @@ impl<'a> Lexer<'a> {
 
     fn path(&mut self) -> Result<Token, String> {
         let mut p = String::new();
-        while !self.is_line_feed() {
+        while self.is_not_newline() {
             p.push(self.cursor.current_char);
             self.cursor.consume();
         }
@@ -220,15 +221,15 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer_does_not_detect_non_line_feed_character() {
-        let lexer = Lexer::new("test", 0, 't');
-        assert!(!lexer.is_line_feed(), "current character was LINE FEED");
+    fn test_lexer_detects_line_feed_character() {
+        let lexer = Lexer::new("\n", 0, '\n');
+        assert!(!lexer.is_not_newline(), "current character was not a LINE FEED");
     }
 
     #[test]
-    fn test_lexer_detects_line_feed_character() {
-        let lexer = Lexer::new("\n", 0, '\n');
-        assert!(lexer.is_line_feed(), "current character was not a LINE FEED");
+    fn test_lexer_does_not_detect_non_line_feed_character() {
+        let lexer = Lexer::new("test", 0, 't');
+        assert!(lexer.is_not_newline(), "current character was LINE FEED");
     }
 
     #[test]
@@ -272,5 +273,25 @@ mod tests {
             }
             Err(_) => panic!("lexer panicked while creating path")
         }
+    }
+
+    #[test]
+    fn test_lexer_next_token() {
+        let input = r#"[test]/some/absolute/path
+        /another/absolute/path
+        "#;
+        let mut lexer = Lexer::new(input, 0, '[');
+        let mut tokens: Vec<Token> = Vec::new();
+        while let Ok(t) = lexer.next_token() {
+            if t.kind == TOKEN_EOF {
+                break
+            }
+            tokens.push(t);
+        }
+        assert_eq!(Token::new(TOKEN_LBRACK, "["), tokens[0]);
+        assert_eq!(Token::new(TOKEN_ALIAS, "test"), tokens[1]);
+        assert_eq!(Token::new(TOKEN_RBRACK, "]"), tokens[2]);
+        assert_eq!(Token::new(TOKEN_PATH, "/some/absolute/path"), tokens[3]);
+        assert_eq!(Token::new(TOKEN_PATH, "/another/absolute/path"), tokens[4]);
     }
 }
