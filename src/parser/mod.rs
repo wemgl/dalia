@@ -11,18 +11,15 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn new(input: &str) -> Self {
-        if input.trim().len() == 0 {
+    fn new(s: &str) -> Self {
+        if s.trim().len() == 0 {
             panic!("no input provided")
         }
-        let c = input.chars().nth(0).unwrap();
-        let mut lex = Lexer::new(input, 0, c);
-        match lex.next_token() {
-            Ok(tok) => {
-                return Self {
-                    input: lex,
-                    lookahead: tok,
-                };
+        let c = s.chars().nth(0).unwrap();
+        let mut input = Lexer::new(s, 0, c);
+        match input.next_token() {
+            Ok(lookahead) => {
+                return Self { input, lookahead };
             }
             Err(e) => panic!("couldn't create new parser: {}", e),
         }
@@ -42,12 +39,11 @@ impl<'a> Parser<'a> {
         if self.lookahead.kind == k {
             return self.consume();
         }
-        let msg = format!(
+        Err(format!(
             "expecting {}; found {}",
             self.input.token_names(k as usize),
             self.lookahead
-        );
-        Err(msg)
+        ))
     }
 
     fn file(&mut self) -> Result<(), String> {
