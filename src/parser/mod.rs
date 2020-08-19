@@ -40,10 +40,7 @@ impl<'a> Parser<'a> {
 
     fn matches(&mut self, k: i32) -> Result<(), String> {
         if self.lookahead.kind == k {
-            if let Err(e) = self.consume() {
-                return Err(e);
-            }
-            return Ok(());
+            return self.consume();
         }
         let msg = format!(
             "expecting {}; found {}",
@@ -59,10 +56,7 @@ impl<'a> Parser<'a> {
                 return Err(e);
             }
             if self.lookahead.kind == TOKEN_EOF {
-                return match self.matches(TOKEN_EOF) {
-                    Ok(_) => Ok(()),
-                    Err(e) => Err(e),
-                };
+                return self.matches(TOKEN_EOF);
             }
         }
     }
@@ -79,26 +73,15 @@ impl<'a> Parser<'a> {
                 return Err(e);
             }
         }
-        if let Err(e) = self.path() {
-            return Err(e);
-        }
-        Ok(())
+        self.path()
     }
 
     fn alias(&mut self) -> Result<(), String> {
-        if let Err(e) = self.matches(TOKEN_ALIAS) {
-            return Err(e);
-        }
-        Ok(())
+        self.matches(TOKEN_ALIAS)
     }
 
     fn path(&mut self) -> Result<(), String> {
-        if self.lookahead.kind == TOKEN_PATH {
-            if let Err(e) = self.matches(TOKEN_PATH) {
-                return Err(e);
-            }
-        }
-        Ok(())
+        self.matches(TOKEN_PATH)
     }
 }
 
