@@ -1,3 +1,5 @@
+use std::fmt::Formatter;
+
 const TOKEN_NAMES: [&str; 8] = [
     "n/a", "<EOF>", "FILE", "LINE", "LBRACK", "RBRACK", "ALIAS", "PATH",
 ];
@@ -31,7 +33,7 @@ impl Token {
 }
 
 impl std::fmt::Display for Token {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<'{}', {}>", self.text, TOKEN_NAMES[self.kind as usize])
     }
 }

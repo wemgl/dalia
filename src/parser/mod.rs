@@ -1,11 +1,11 @@
-mod lexer;
+use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
 
-// const CONFIG: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+mod lexer;
 
 #[derive(Debug)]
 struct Parser<'a> {
     /// The lexer responsible for returning tokenized input.
-    input: lexer::Lexer<'a>,
+    input: Lexer<'a>,
     /// The current lookahead token used used by this parser.
     lookahead: lexer::Token,
 }
@@ -16,7 +16,7 @@ impl<'a> Parser<'a> {
             panic!("no input provided")
         }
         let c = input.chars().nth(0).unwrap();
-        let mut lex = lexer::Lexer::new(input, 0, c);
+        let mut lex = Lexer::new(input, 0, c);
         match lex.next_token() {
             Ok(tok) => {
                 return Self {
@@ -58,8 +58,8 @@ impl<'a> Parser<'a> {
             if let Err(e) = self.line() {
                 return Err(e);
             }
-            if self.lookahead.kind == lexer::TOKEN_EOF {
-                return match self.matches(lexer::TOKEN_EOF) {
+            if self.lookahead.kind == TOKEN_EOF {
+                return match self.matches(TOKEN_EOF) {
                     Ok(_) => Ok(()),
                     Err(e) => Err(e),
                 };
@@ -68,14 +68,14 @@ impl<'a> Parser<'a> {
     }
 
     pub fn line(&mut self) -> Result<(), String> {
-        if self.lookahead.kind == lexer::TOKEN_LBRACK {
-            if let Err(e) = self.matches(lexer::TOKEN_LBRACK) {
+        if self.lookahead.kind == TOKEN_LBRACK {
+            if let Err(e) = self.matches(TOKEN_LBRACK) {
                 return Err(e);
             }
             if let Err(e) = self.alias() {
                 return Err(e);
             }
-            if let Err(e) = self.matches(lexer::TOKEN_RBRACK) {
+            if let Err(e) = self.matches(TOKEN_RBRACK) {
                 return Err(e);
             }
         }
@@ -86,15 +86,15 @@ impl<'a> Parser<'a> {
     }
 
     fn alias(&mut self) -> Result<(), String> {
-        if let Err(e) = self.matches(lexer::TOKEN_ALIAS) {
+        if let Err(e) = self.matches(TOKEN_ALIAS) {
             return Err(e);
         }
         Ok(())
     }
 
     fn path(&mut self) -> Result<(), String> {
-        if self.lookahead.kind == lexer::TOKEN_PATH {
-            if let Err(e) = self.matches(lexer::TOKEN_PATH) {
+        if self.lookahead.kind == TOKEN_PATH {
+            if let Err(e) = self.matches(TOKEN_PATH) {
                 return Err(e);
             }
         }
@@ -110,7 +110,7 @@ mod tests {
     fn test_create_parser() {
         let p = Parser::new("/some/absolute/path");
         assert_eq!(
-            lexer::Token::new(lexer::TOKEN_PATH, "/some/absolute/path"),
+            lexer::Token::new(TOKEN_PATH, "/some/absolute/path"),
             p.lookahead
         );
     }
@@ -131,20 +131,20 @@ mod tests {
     fn test_parser_consume() {
         let mut p = Parser::new("[alias]/some/absolute/path");
         let _ = p.consume();
-        assert_eq!(lexer::Token::new(lexer::TOKEN_ALIAS, "alias"), p.lookahead);
+        assert_eq!(lexer::Token::new(TOKEN_ALIAS, "alias"), p.lookahead);
     }
 
     #[test]
     fn test_parser_matches() {
         let mut p = Parser::new("[alias]/some/absolute/path");
-        let _ = p.matches(lexer::TOKEN_LBRACK);
-        assert_eq!(lexer::Token::new(lexer::TOKEN_ALIAS, "alias"), p.lookahead);
+        let _ = p.matches(TOKEN_LBRACK);
+        assert_eq!(lexer::Token::new(TOKEN_ALIAS, "alias"), p.lookahead);
     }
 
     #[test]
     fn test_parser_does_not_match() {
         let mut p = Parser::new("[alias]/some/absolute/path");
-        if let Err(e) = p.matches(lexer::TOKEN_RBRACK) {
+        if let Err(e) = p.matches(TOKEN_RBRACK) {
             assert_eq!("expecting RBRACK; found <'[', LBRACK>", e);
         }
     }
