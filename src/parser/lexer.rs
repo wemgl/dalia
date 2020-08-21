@@ -1,3 +1,4 @@
+use std::borrow::Cow;
 use std::fmt::Formatter;
 
 const TOKEN_NAMES: [&str; 8] = [
@@ -16,23 +17,20 @@ const EOF: char = !0 as char;
 
 /// Token identifies a text and the kind of token it represents.
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Token {
+pub(crate) struct Token<'a> {
     /// The specific atom this token represents.
     pub(crate) kind: i32,
     /// The particular text associated with this token when it was parsed.
-    pub(crate) text: String,
+    pub(crate) text: Cow<'a, String>,
 }
 
-impl Token {
-    pub(crate) fn new(kind: i32, text: &str) -> Self {
-        Self {
-            kind,
-            text: text.to_string(),
-        }
+impl<'a> Token<'a> {
+    pub(crate) fn new(kind: i32, text: Cow<'a, String>) -> Self {
+        Self { kind, text }
     }
 }
 
-impl std::fmt::Display for Token {
+impl<'a> std::fmt::Display for Token<'a> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "<'{}', {}>", self.text, TOKEN_NAMES[self.kind as usize])
     }
@@ -110,7 +108,7 @@ impl<'a> Lexer<'a> {
         self.cursor.current_char.is_ascii_alphanumeric()
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<Token, String> {
+    pub(crate) fn next_token(&mut self) -> Result<Token<'a>, String> {
         while self.cursor.current_char != EOF {
             match self.cursor.current_char {
                 ' ' | '\t' | '\n' | '\r' => {
@@ -119,11 +117,11 @@ impl<'a> Lexer<'a> {
                 }
                 '[' => {
                     self.cursor.consume();
-                    return Ok(Token::new(TOKEN_LBRACK, "["));
+                    return Ok(Token::new(TOKEN_LBRACK, Cow::Owned("[".into())));
                 }
                 ']' => {
                     self.cursor.consume();
-                    return Ok(Token::new(TOKEN_RBRACK, "]"));
+                    return Ok(Token::new(TOKEN_RBRACK, Cow::Owned("]".into())));
                 }
                 _ => {
                     if self.is_alphanumeric() {
@@ -136,7 +134,7 @@ impl<'a> Lexer<'a> {
             }
         }
 
-        Ok(Token::new(TOKEN_EOF, "<EOF>"))
+        Ok(Token::new(TOKEN_EOF, Cow::Owned("<EOF>".into())))
     }
 
     fn whitespace(&mut self) {
@@ -145,22 +143,22 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn alias(&mut self) -> Result<Token, String> {
-        let mut p = String::new();
+    fn alias(&mut self) -> Result<Token<'a>, String> {
+        let mut a: String = String::new();
         while self.is_alphanumeric() {
-            p.push(self.cursor.current_char);
+            a.push(self.cursor.current_char);
             self.cursor.consume();
         }
-        Ok(Token::new(TOKEN_ALIAS, p.as_str()))
+        Ok(Token::new(TOKEN_ALIAS, Cow::Owned(a)))
     }
 
-    fn path(&mut self) -> Result<Token, String> {
+    fn path(&mut self) -> Result<Token<'a>, String> {
         let mut p = String::new();
         while self.is_not_end_line() {
             p.push(self.cursor.current_char);
             self.cursor.consume();
         }
-        Ok(Token::new(TOKEN_PATH, p.as_str()))
+        Ok(Token::new(TOKEN_PATH, Cow::Owned(p)))
     }
 }
 
@@ -170,7 +168,7 @@ mod tests {
 
     #[test]
     fn test_token_display() {
-        let tok = Token::new(TOKEN_EOF, "<EOF>");
+        let tok = Token::new(TOKEN_EOF, Cow::Owned("<EOF>".into()));
         assert_eq!("<'<EOF>', <EOF>>", tok.to_string())
     }
 
@@ -265,7 +263,7 @@ mod tests {
         match lexer.alias() {
             Ok(token) => {
                 assert_eq!(TOKEN_ALIAS, token.kind);
-                assert_eq!("alias", token.text);
+                assert_eq!("alias", token.text.as_str());
             }
             Err(_) => panic!("lexer panicked while creating alias"),
         }
@@ -277,7 +275,7 @@ mod tests {
         match lexer.path() {
             Ok(token) => {
                 assert_eq!(TOKEN_PATH, token.kind);
-                assert_eq!("/some/absolute/path", token.text);
+                assert_eq!("/some/absolute/path", token.text.as_str());
             }
             Err(_) => panic!("lexer panicked while creating path"),
         }
@@ -296,10 +294,19 @@ mod tests {
             }
             tokens.push(t);
         }
-        assert_eq!(Token::new(TOKEN_LBRACK, "["), tokens[0]);
-        assert_eq!(Token::new(TOKEN_ALIAS, "test"), tokens[1]);
-        assert_eq!(Token::new(TOKEN_RBRACK, "]"), tokens[2]);
-        assert_eq!(Token::new(TOKEN_PATH, "/some/absolute/path"), tokens[3]);
-        assert_eq!(Token::new(TOKEN_PATH, "/another/absolute/path"), tokens[4]);
+        assert_eq!(Token::new(TOKEN_LBRACK, Cow::Owned("[".into())), tokens[0]);
+        assert_eq!(
+            Token::new(TOKEN_ALIAS, Cow::Owned("test".into())),
+            tokens[1]
+        );
+        assert_eq!(Token::new(TOKEN_RBRACK, Cow::Owned("]".into())), tokens[2]);
+        assert_eq!(
+            Token::new(TOKEN_PATH, Cow::Owned("/some/absolute/path".into())),
+            tokens[3]
+        );
+        assert_eq!(
+            Token::new(TOKEN_PATH, Cow::Owned("/another/absolute/path".into())),
+            tokens[4]
+        );
     }
 }

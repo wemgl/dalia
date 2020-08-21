@@ -7,7 +7,7 @@ struct Parser<'a> {
     /// The lexer responsible for returning tokenized input.
     input: Lexer<'a>,
     /// The current lookahead token used used by this parser.
-    lookahead: lexer::Token,
+    lookahead: lexer::Token<'a>,
 }
 
 impl<'a> Parser<'a> {
@@ -84,12 +84,13 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::borrow::Cow;
 
     #[test]
     fn test_create_parser() {
         let p = Parser::new("/some/absolute/path");
         assert_eq!(
-            lexer::Token::new(TOKEN_PATH, "/some/absolute/path"),
+            lexer::Token::new(TOKEN_PATH, Cow::Owned("/some/absolute/path".into())),
             p.lookahead
         );
     }
@@ -110,14 +111,20 @@ mod tests {
     fn test_parser_consume() {
         let mut p = Parser::new("[alias]/some/absolute/path");
         let _ = p.consume();
-        assert_eq!(lexer::Token::new(TOKEN_ALIAS, "alias"), p.lookahead);
+        assert_eq!(
+            lexer::Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
+            p.lookahead
+        );
     }
 
     #[test]
     fn test_parser_matches() {
         let mut p = Parser::new("[alias]/some/absolute/path");
         let _ = p.matches(TOKEN_LBRACK);
-        assert_eq!(lexer::Token::new(TOKEN_ALIAS, "alias"), p.lookahead);
+        assert_eq!(
+            lexer::Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
+            p.lookahead
+        );
     }
 
     #[test]
