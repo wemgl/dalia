@@ -1,17 +1,13 @@
 use std::borrow::Cow;
 use std::fmt::Formatter;
 
-const TOKEN_NAMES: [&str; 8] = [
-    "n/a", "<EOF>", "FILE", "LINE", "LBRACK", "RBRACK", "ALIAS", "PATH",
-];
+const TOKEN_NAMES: [&str; 6] = ["n/a", "<EOF>", "LBRACK", "RBRACK", "ALIAS", "PATH"];
 
 pub(crate) const TOKEN_EOF: i32 = 1;
-pub(crate) const TOKEN_FILE: i32 = 2;
-pub(crate) const TOKEN_LINE: i32 = 3;
-pub(crate) const TOKEN_LBRACK: i32 = 4;
-pub(crate) const TOKEN_RBRACK: i32 = 5;
-pub(crate) const TOKEN_ALIAS: i32 = 6;
-pub(crate) const TOKEN_PATH: i32 = 7;
+pub(crate) const TOKEN_LBRACK: i32 = 2;
+pub(crate) const TOKEN_RBRACK: i32 = 3;
+pub(crate) const TOKEN_ALIAS: i32 = 4;
+pub(crate) const TOKEN_PATH: i32 = 5;
 
 const EOF: char = !0 as char;
 
@@ -82,7 +78,7 @@ impl Cursor {
 #[derive(Debug)]
 pub(crate) struct Lexer<'a> {
     pub(crate) cursor: Cursor,
-    token_names: [&'a str; 8],
+    token_names: [&'a str; 6],
 }
 
 impl<'a> Lexer<'a> {
@@ -220,7 +216,7 @@ mod tests {
     fn test_lexer_gets_token_name() {
         let lexer = Lexer::new("test", 0, 't');
         let token_name = lexer.token_names(2);
-        assert_eq!("FILE", token_name);
+        assert_eq!(TOKEN_NAMES[2], token_name);
     }
 
     #[test]

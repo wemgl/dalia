@@ -1,3 +1,7 @@
+use std::borrow::Cow;
+use std::collections::HashMap;
+use std::path::Path;
+
 use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
 
 mod lexer;
@@ -8,6 +12,7 @@ struct Parser<'a> {
     input: Lexer<'a>,
     /// The current lookahead token used used by this parser.
     lookahead: lexer::Token<'a>,
+    intrep: HashMap<String, String>,
 }
 
 impl<'a> Parser<'a> {
@@ -19,7 +24,11 @@ impl<'a> Parser<'a> {
         let mut input = Lexer::new(s, 0, c);
         match input.next_token() {
             Ok(lookahead) => {
-                return Self { input, lookahead };
+                return Self {
+                    input,
+                    lookahead,
+                    intrep: HashMap::new(),
+                };
             }
             Err(e) => panic!("couldn't create new parser: {}", e),
         }
@@ -58,10 +67,12 @@ impl<'a> Parser<'a> {
     }
 
     pub fn line(&mut self) -> Result<(), String> {
+        let mut alias: Option<Cow<String>> = None;
         if self.lookahead.kind == TOKEN_LBRACK {
             if let Err(e) = self.matches(TOKEN_LBRACK) {
                 return Err(e);
             }
+            alias = Some(self.lookahead.text.to_owned());
             if let Err(e) = self.alias() {
                 return Err(e);
             }
@@ -69,11 +80,52 @@ impl<'a> Parser<'a> {
                 return Err(e);
             }
         }
-        self.path()
+        let path: Option<Cow<String>> = Some(self.lookahead.text.to_owned());
+        if let Err(e) = self.path() {
+            return Err(e);
+        }
+        if let Err(e) = self.add_config(alias, path) {
+            return Err(e);
+        }
+        Ok(())
+    }
+
+    fn add_config(
+        &mut self,
+        alias: Option<Cow<String>>,
+        path: Option<Cow<String>>,
+    ) -> Result<(), String> {
+        match alias {
+            Some(a) => {
+                self.intrep.insert(
+                    a.to_owned().parse().unwrap(),
+                    path.unwrap().to_owned().parse().unwrap(),
+                );
+            }
+            None => {
+                if let Some(p) = path {
+                    let dir = p.into_owned();
+                    match Path::new(&dir).file_stem() {
+                        Some(file_stem) => {
+                            self.intrep.insert(file_stem.to_str().unwrap().into(), dir);
+                        }
+                        None => {
+                            return Err("missing file stem in path".into());
+                        }
+                    }
+                }
+            }
+        }
+        Ok(())
     }
 
     fn alias(&mut self) -> Result<(), String> {
-        self.matches(TOKEN_ALIAS)
+        if self.lookahead.kind == TOKEN_ALIAS {
+            if let Err(e) = self.matches(TOKEN_ALIAS) {
+                return Err(e);
+            }
+        }
+        Ok(())
     }
 
     fn path(&mut self) -> Result<(), String> {
@@ -83,8 +135,9 @@ impl<'a> Parser<'a> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::borrow::Cow;
+
+    use super::*;
 
     #[test]
     fn test_create_parser() {
