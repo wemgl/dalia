@@ -78,14 +78,14 @@ impl Cursor {
 #[derive(Debug)]
 pub(crate) struct Lexer<'a> {
     pub(crate) cursor: Cursor,
-    token_names: [&'a str; 6],
+    token_names: Vec<&'a str>,
 }
 
 impl<'a> Lexer<'a> {
     pub(crate) fn new(input: &str, pointer: usize, c: char) -> Self {
         Self {
             cursor: Cursor::new(input, pointer, c),
-            token_names: TOKEN_NAMES,
+            token_names: Vec::from(TOKEN_NAMES),
         }
     }
 
