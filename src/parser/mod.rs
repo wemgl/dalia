@@ -35,13 +35,8 @@ impl<'a> Parser<'a> {
     }
 
     fn consume(&mut self) -> Result<(), String> {
-        match self.input.next_token() {
-            Ok(t) => {
-                self.lookahead = t;
-                Ok(())
-            }
-            Err(e) => Err(e),
-        }
+        self.lookahead = self.input.next_token()?;
+        Ok(())
     }
 
     fn matches(&mut self, k: i32) -> Result<(), String> {
@@ -57,9 +52,7 @@ impl<'a> Parser<'a> {
 
     pub fn file(&mut self) -> Result<(), String> {
         loop {
-            if let Err(e) = self.line() {
-                return Err(e);
-            }
+            self.line()?;
             if self.lookahead.kind == TOKEN_EOF {
                 return self.matches(TOKEN_EOF);
             }
@@ -69,24 +62,16 @@ impl<'a> Parser<'a> {
     pub fn line(&mut self) -> Result<(), String> {
         let mut alias: Option<Cow<String>> = None;
         if self.lookahead.kind == TOKEN_LBRACK {
-            if let Err(e) = self.matches(TOKEN_LBRACK) {
-                return Err(e);
-            }
+            self.matches(TOKEN_LBRACK)?;
+
             alias = Some(self.lookahead.text.to_owned());
-            if let Err(e) = self.alias() {
-                return Err(e);
-            }
-            if let Err(e) = self.matches(TOKEN_RBRACK) {
-                return Err(e);
-            }
+            self.alias()?;
+
+            self.matches(TOKEN_RBRACK)?
         }
         let path: Option<Cow<String>> = Some(self.lookahead.text.to_owned());
-        if let Err(e) = self.path() {
-            return Err(e);
-        }
-        if let Err(e) = self.add_config(alias, path) {
-            return Err(e);
-        }
+        self.path()?;
+        self.add_config(alias, path)?;
         Ok(())
     }
 
@@ -122,15 +107,16 @@ impl<'a> Parser<'a> {
 
     fn alias(&mut self) -> Result<(), String> {
         if self.lookahead.kind == TOKEN_ALIAS {
-            if let Err(e) = self.matches(TOKEN_ALIAS) {
-                return Err(e);
-            }
+            self.matches(TOKEN_ALIAS)?
         }
         Ok(())
     }
 
     fn path(&mut self) -> Result<(), String> {
-        self.matches(TOKEN_PATH)
+        if self.lookahead.kind == TOKEN_PATH {
+            self.matches(TOKEN_PATH)?
+        }
+        Ok(())
     }
 }
 
@@ -190,63 +176,53 @@ mod tests {
     }
 
     #[test]
-    fn test_parse_file_with_alias_config() {
+    fn test_parse_file_with_alias_config() -> Result<(), String> {
         let mut p = Parser::new("[alias]/some/absolute/path");
-        match p.file() {
-            Ok(_) => assert!(true),
-            Err(e) => panic!(format!("test failed: {:?}", e)),
-        }
+        p.file()?;
+        Ok(())
     }
 
     #[test]
-    fn test_parse_file_with_single_path() {
+    fn test_parse_file_with_single_path() -> Result<(), String> {
         let mut p = Parser::new("/some/absolute/path");
-        match p.file() {
-            Ok(_) => assert!(true),
-            Err(e) => panic!(format!("test failed: {:?}", e)),
-        }
+        p.file()?;
+        Ok(())
     }
 
     #[test]
-    fn test_parse_complex_file() {
+    fn test_parse_complex_file() -> Result<(), String> {
         let mut p = Parser::new(
             r#"[alias]/another/absolute/path
         /yet/another/path
         "#,
         );
-        match p.file() {
-            Ok(_) => assert!(true),
-            Err(e) => panic!(format!("test failed: {:?}", e)),
-        }
+        p.file()?;
+        Ok(())
     }
 
     #[test]
-    fn test_parsed_alias_is_lowercase() {
+    fn test_parsed_alias_is_lowercase() -> Result<(), String> {
         let mut p = Parser::new("/absolute/Path");
-        match p.file() {
-            Ok(_) => assert_eq!("/absolute/Path", p.intrep.get("path").unwrap().as_str()),
-            Err(e) => panic!(format!("test failed: {:?}", e)),
-        }
+        p.file()?;
+        assert_eq!("/absolute/Path", p.intrep.get("path").unwrap().as_str());
+        Ok(())
     }
 
     #[test]
-    fn test_parsed_alias_with_tilde() {
+    fn test_parsed_alias_with_tilde() -> Result<(), String> {
         let mut p = Parser::new(
             r#"
         ~/absolute/Path
         [another-path]~/absolute/Path
         "#,
         );
-        match p.file() {
-            Ok(_) => {
-                assert!(!p.intrep.is_empty());
-                assert_eq!("~/absolute/Path", p.intrep.get("path").unwrap().as_str());
-                assert_eq!(
-                    "~/absolute/Path",
-                    p.intrep.get("another-path").unwrap().as_str()
-                )
-            }
-            Err(e) => panic!(format!("test failed: {:?}", e)),
-        }
+        p.file()?;
+        assert!(!p.intrep.is_empty());
+        assert_eq!("~/absolute/Path", p.intrep.get("path").unwrap().as_str());
+        assert_eq!(
+            "~/absolute/Path",
+            p.intrep.get("another-path").unwrap().as_str()
+        );
+        Ok(())
     }
 }

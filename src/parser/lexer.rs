@@ -200,12 +200,11 @@ mod tests {
     }
 
     #[test]
-    fn test_cursor_matches_character_and_consumes() {
+    fn test_cursor_matches_character_and_consumes() -> Result<(), String> {
         let mut cur = Cursor::new("test", 0, 't');
-        match cur.matches('t') {
-            Ok(r) => assert_eq!('e', r),
-            Err(e) => panic!(e),
-        }
+        let r = cur.matches('t')?;
+        assert_eq!('e', r);
+        Ok(())
     }
 
     #[test]
@@ -259,27 +258,21 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer_creates_alias_token() {
+    fn test_lexer_creates_alias_token() -> Result<(), String> {
         let mut lexer = Lexer::new("alias", 0, 'a');
-        match lexer.alias() {
-            Ok(token) => {
-                assert_eq!(TOKEN_ALIAS, token.kind);
-                assert_eq!("alias", token.text.as_str());
-            }
-            Err(_) => panic!("lexer panicked while creating alias"),
-        }
+        let token = lexer.alias()?;
+        assert_eq!(TOKEN_ALIAS, token.kind);
+        assert_eq!("alias", token.text.as_str());
+        Ok(())
     }
 
     #[test]
-    fn test_lexer_creates_path_token() {
+    fn test_lexer_creates_path_token() -> Result<(), String> {
         let mut lexer = Lexer::new("/some/absolute/path", 0, '/');
-        match lexer.path() {
-            Ok(token) => {
-                assert_eq!(TOKEN_PATH, token.kind);
-                assert_eq!("/some/absolute/path", token.text.as_str());
-            }
-            Err(_) => panic!("lexer panicked while creating path"),
-        }
+        let token = lexer.path()?;
+        assert_eq!(TOKEN_PATH, token.kind);
+        assert_eq!("/some/absolute/path", token.text.as_str());
+        Ok(())
     }
 
     #[test]
