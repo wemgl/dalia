@@ -7,7 +7,7 @@ use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRAC
 mod lexer;
 
 #[derive(Debug)]
-struct Parser<'a> {
+pub struct Parser<'a> {
     /// The lexer responsible for returning tokenized input.
     input: Lexer<'a>,
     /// The current lookahead token used used by this parser.
@@ -16,7 +16,7 @@ struct Parser<'a> {
 }
 
 impl<'a> Parser<'a> {
-    fn new(s: &str) -> Self {
+    pub fn new(s: &str) -> Self {
         if s.trim().len() == 0 {
             panic!("no input provided")
         }
@@ -55,7 +55,7 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    fn file(&mut self) -> Result<(), String> {
+    pub fn file(&mut self) -> Result<(), String> {
         loop {
             if let Err(e) = self.line() {
                 return Err(e);
@@ -107,7 +107,8 @@ impl<'a> Parser<'a> {
                     let dir = p.into_owned();
                     match Path::new(&dir).file_stem() {
                         Some(file_stem) => {
-                            self.intrep.insert(file_stem.to_str().unwrap().into(), dir);
+                            self.intrep
+                                .insert(file_stem.to_str().unwrap().to_lowercase().into(), dir);
                         }
                         None => {
                             return Err("missing file stem in path".into());
@@ -215,6 +216,36 @@ mod tests {
         );
         match p.file() {
             Ok(_) => assert!(true),
+            Err(e) => panic!(format!("test failed: {:?}", e)),
+        }
+    }
+
+    #[test]
+    fn test_parsed_alias_is_lowercase() {
+        let mut p = Parser::new("/absolute/Path");
+        match p.file() {
+            Ok(_) => assert_eq!("/absolute/Path", p.intrep.get("path").unwrap().as_str()),
+            Err(e) => panic!(format!("test failed: {:?}", e)),
+        }
+    }
+
+    #[test]
+    fn test_parsed_alias_with_tilde() {
+        let mut p = Parser::new(
+            r#"
+        ~/absolute/Path
+        [another-path]~/absolute/Path
+        "#,
+        );
+        match p.file() {
+            Ok(_) => {
+                assert!(!p.intrep.is_empty());
+                assert_eq!("~/absolute/Path", p.intrep.get("path").unwrap().as_str());
+                assert_eq!(
+                    "~/absolute/Path",
+                    p.intrep.get("another-path").unwrap().as_str()
+                )
+            }
             Err(e) => panic!(format!("test failed: {:?}", e)),
         }
     }

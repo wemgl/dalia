@@ -11,6 +11,9 @@ pub(crate) const TOKEN_PATH: i32 = 5;
 
 const EOF: char = !0 as char;
 
+const UNDERSCORE: char = '_';
+const HYPHEN: char = '-';
+
 /// Token identifies a text and the kind of token it represents.
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct Token<'a> {
@@ -100,8 +103,10 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn is_alphanumeric(&self) -> bool {
+    fn is_alias_name(&self) -> bool {
         self.cursor.current_char.is_ascii_alphanumeric()
+            || self.cursor.current_char == UNDERSCORE
+            || self.cursor.current_char == HYPHEN
     }
 
     pub(crate) fn next_token(&mut self) -> Result<Token<'a>, String> {
@@ -120,7 +125,7 @@ impl<'a> Lexer<'a> {
                     return Ok(Token::new(TOKEN_RBRACK, Cow::Owned("]".into())));
                 }
                 _ => {
-                    if self.is_alphanumeric() {
+                    if self.is_alias_name() {
                         return self.alias();
                     } else if self.is_not_end_line() {
                         return self.path();
@@ -141,7 +146,7 @@ impl<'a> Lexer<'a> {
 
     fn alias(&mut self) -> Result<Token<'a>, String> {
         let mut a: String = String::new();
-        while self.is_alphanumeric() {
+        while self.is_alias_name() {
             a.push(self.cursor.current_char);
             self.cursor.consume();
         }
@@ -242,15 +247,15 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer_can_check_is_alphanumeric() {
+    fn test_lexer_can_check_is_alis_name() {
         let lexer = Lexer::new("test0123", 0, 't');
-        assert!(lexer.is_alphanumeric());
+        assert!(lexer.is_alias_name());
     }
 
     #[test]
-    fn test_lexer_can_check_is_alphanumeric_fails() {
-        let lexer = Lexer::new("_", 0, '_');
-        assert!(!lexer.is_alphanumeric());
+    fn test_lexer_can_check_is_alis_name_fails() {
+        let lexer = Lexer::new("*", 0, '*');
+        assert!(!lexer.is_alias_name());
     }
 
     #[test]

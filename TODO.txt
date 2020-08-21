@@ -1,0 +1,1 @@
+[] handle parsing invalid config files by returning an error and exiting
