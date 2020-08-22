@@ -34,6 +34,10 @@ impl<'a> Parser<'a> {
         }
     }
 
+    pub fn aliases(&self) -> HashMap<String, String> {
+        self.intrep.to_owned()
+    }
+
     fn consume(&mut self) -> Result<(), String> {
         self.lookahead = self.input.next_token()?;
         Ok(())
@@ -50,16 +54,17 @@ impl<'a> Parser<'a> {
         ))
     }
 
-    pub fn file(&mut self) -> Result<(), String> {
+    fn file(&mut self) -> Result<(), String> {
         loop {
             self.line()?;
-            // if self.lookahead.kind != TOKEN_ALIAS || self.lookahead.kind != TOKEN_PATH {
-            //     return Err(format!("invalid token: {}", self.lookahead));
-            // }
             if self.lookahead.kind == TOKEN_EOF {
                 return self.matches(TOKEN_EOF);
             }
         }
+    }
+
+    pub fn process_input(&mut self) -> Result<(), String> {
+        self.file()
     }
 
     pub fn line(&mut self) -> Result<(), String> {
