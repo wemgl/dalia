@@ -29,6 +29,10 @@ impl<'a> Configuration<'a> {
     fn aliases(&self) -> HashMap<String, String> {
         self.parser.aliases()
     }
+
+    fn process_input(&mut self) -> Result<(), String> {
+        self.parser.process_input()
+    }
 }
 
 fn main() {
@@ -67,7 +71,7 @@ fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
 
 fn run() -> Result<(), String> {
     let mut config = load_configuration()?;
-    config.parser.process_input()?;
+    config.process_input()?;
     let mut alias_cmd = Command::new(ALIAS_PROGRAM);
     for (alias, path) in config.aliases() {
         alias_cmd.arg(format!(r#"{}=cd "{}""#, alias, path));
