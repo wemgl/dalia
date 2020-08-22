@@ -65,16 +65,6 @@ impl Cursor {
             self.current_char = c
         }
     }
-
-    /// Checks if the character parameter matches the current one stored by the cursor and
-    /// returns the updated current character.
-    fn matches(&mut self, c: char) -> Result<char, String> {
-        if self.current_char == c {
-            self.consume();
-            return Ok(self.current_char);
-        }
-        return Err(format!("expecting {}, but found {}", c, self.current_char));
-    }
 }
 
 /// Creates and identifies tokens using the underlying cursor.
@@ -197,21 +187,6 @@ mod tests {
         assert_eq!("test".to_string(), cur.input);
         assert_eq!(5, cur.pointer);
         assert_eq!(!0 as char, cur.current_char);
-    }
-
-    #[test]
-    fn test_cursor_matches_character_and_consumes() -> Result<(), String> {
-        let mut cur = Cursor::new("test", 0, 't');
-        let r = cur.matches('t')?;
-        assert_eq!('e', r);
-        Ok(())
-    }
-
-    #[test]
-    fn test_cursor_does_not_match_character_or_consume() {
-        let mut cur = Cursor::new("test", 0, 't');
-        let c = cur.matches('x');
-        assert_eq!(c.unwrap_err(), "expecting x, but found t");
     }
 
     #[test]
