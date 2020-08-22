@@ -301,4 +301,19 @@ mod tests {
             tokens[4]
         );
     }
+
+    #[test]
+    fn test_lexer_parses_path_without_initial_slash() {
+        let input = "some/absolute/path";
+        let mut lexer = Lexer::new(input, 0, 's');
+        let mut tokens: Vec<Token> = Vec::new();
+        while let Ok(t) = lexer.next_token() {
+            if t.kind == TOKEN_EOF {
+                break;
+            }
+            tokens.push(t);
+        }
+        assert!(!tokens.is_empty());
+        assert_eq!(2, tokens.len())
+    }
 }

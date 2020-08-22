@@ -53,6 +53,9 @@ impl<'a> Parser<'a> {
     pub fn file(&mut self) -> Result<(), String> {
         loop {
             self.line()?;
+            // if self.lookahead.kind != TOKEN_ALIAS || self.lookahead.kind != TOKEN_PATH {
+            //     return Err(format!("invalid token: {}", self.lookahead));
+            // }
             if self.lookahead.kind == TOKEN_EOF {
                 return self.matches(TOKEN_EOF);
             }
@@ -102,17 +105,11 @@ impl<'a> Parser<'a> {
     }
 
     fn alias(&mut self) -> Result<(), String> {
-        if self.lookahead.kind == TOKEN_ALIAS {
-            self.matches(TOKEN_ALIAS)?
-        }
-        Ok(())
+        self.matches(TOKEN_ALIAS)
     }
 
     fn path(&mut self) -> Result<(), String> {
-        if self.lookahead.kind == TOKEN_PATH {
-            self.matches(TOKEN_PATH)?
-        }
-        Ok(())
+        self.matches(TOKEN_PATH)
     }
 }
 
@@ -186,6 +183,14 @@ mod tests {
     }
 
     #[test]
+    fn test_parse_fails_with_invalid_path() {
+        let input = "some/absolute/path";
+        let mut p = Parser::new(input);
+        let result: Result<(), String> = p.file();
+        assert_eq!(result.unwrap_err(), "expecting PATH; found <'some', ALIAS>")
+    }
+
+    #[test]
     fn test_parse_complex_file() -> Result<(), String> {
         let mut p = Parser::new(
             r#"[alias]/another/absolute/path
@@ -193,6 +198,10 @@ mod tests {
         "#,
         );
         p.file()?;
+        assert!(!p.intrep.is_empty());
+        assert_eq!(2, p.intrep.len());
+        assert_eq!("/another/absolute/path", p.intrep.get("alias").unwrap());
+        assert_eq!("/yet/another/path", p.intrep.get("path").unwrap());
         Ok(())
     }
 
