@@ -210,10 +210,8 @@ mod tests {
     #[test]
     fn test_cursor_does_not_match_character_or_consume() {
         let mut cur = Cursor::new("test", 0, 't');
-        match cur.matches('x') {
-            Ok(_) => panic!("should not be okay"),
-            Err(e) => assert_eq!("expecting x, but found t", e),
-        }
+        let c = cur.matches('x');
+        assert_eq!(c.unwrap_err(), "expecting x, but found t");
     }
 
     #[test]

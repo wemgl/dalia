@@ -88,21 +88,17 @@ impl<'a> Parser<'a> {
                 );
             }
             None => {
-                if let Some(p) = path {
-                    let dir = p.into_owned();
-                    match Path::new(&dir).file_stem() {
-                        Some(file_stem) => {
-                            self.intrep
-                                .insert(file_stem.to_str().unwrap().to_lowercase().into(), dir);
-                        }
-                        None => {
-                            return Err("missing file stem in path".into());
-                        }
-                    }
-                }
+                self.insert_alias_from_path(path);
             }
         }
         Ok(())
+    }
+
+    fn insert_alias_from_path(&mut self, path: Option<Cow<String>>) -> Option<String> {
+        let dir = path?.into_owned();
+        let file_stem = Path::new(&dir).file_stem()?;
+        let alias = file_stem.to_str()?;
+        self.intrep.insert(alias.to_lowercase().into(), dir)
     }
 
     fn alias(&mut self) -> Result<(), String> {
