@@ -30,6 +30,7 @@ photos='cd /Users/johnappleseed/Pictures'
 ```
 
 ## Customization
-Dalia expects to find its configuration file at `~/.dalia` but that location 
-can be changed by setting the `DALIA_CONFIG_PATH` environment variable to somewhere
-else and putting a file named `config` there instead.
+Dalia expects to find its configuration, in a file named `config`,
+in the directory `~/.dalia`, but that location can be changed by
+setting the `DALIA_CONFIG_PATH` environment variable to somewhere
+else and putting the `config` file in there instead.
