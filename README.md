@@ -18,6 +18,7 @@ then the alias will be the lowercase basename of the path (e.g. `/some/absolute/
 ~/Desktop
 [icloud]~/Library/Mobile\ Documents/com~apple~CloudDocs
 /Users/johnappleseed/Music
+[photos] /Users/johnappleseed/Pictures
 ```
 This configuration file will create the following aliases:
 ```
@@ -25,6 +26,7 @@ workspace='cd ~/Documents/workspace'
 desktop='cd ~/Desktop'
 icloud='cd '~/Library/Mobile\ Documents/com~apple~CloudDocs'
 music='cd /Users/johnappleseed/Music'
+photos='cd /Users/johnappleseed/Pictures'
 ```
 
 ## Customization
