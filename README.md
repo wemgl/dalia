@@ -1,9 +1,31 @@
 # Dalia
 
-## Grammar
+A small commandline utility which creates shell aliases for changing directories quickly based
+on a set of configured paths.
+
+## Configuration
+Dalia requires a configuration file in order to run properly. The file should contain a list of
+paths, and any optional custom names, to create aliases for. All paths provided to `dalia` must be
+absolute paths, anything else is invalid.
+
+Aliases can have a custom name assigned to them by surrounding them with square brackets (`[` & `]`) and
+including them at the beginning of the line. If dalia doesn't find a custom name for a particular directory,
+then the alias will be the lowercase basename of the path (e.g. `/some/absolute/path` yields an alias named `path`).
+
+#### Sample Configuration File
 ```
-file : line+ ;
-line : ('[' alias ']')? path ;
-alias : [a-zA-Z0-9]+ ;
-path: [^\0]+ ;
+[workspace]~/Documents/workspace
+~/Desktop
+[icloud]~/Library/Mobile\ Documents/com~apple~CloudDocs
+/Users/johnappleseed/Music
 ```
+This configuration file will create the following aliases:
+```
+workspace='cd ~/Documents/workspace'
+desktop='cd ~/Desktop'
+icloud='cd '~/Library/Mobile\ Documents/com~apple~CloudDocs'
+music='cd /Users/johnappleseed/Music'
+```
+
+Dalia expects the configuration file to be stored at `~/.dalia/config` but the location of the 
+configuration file can be changed by setting the `DALIA_CONFIG_PATH` environment variable.
