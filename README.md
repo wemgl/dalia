@@ -28,5 +28,6 @@ music='cd /Users/johnappleseed/Music'
 ```
 
 ## Customization
-Dalia expects to find the configuration file at `~/.dalia/config` but the location of the 
-configuration file can be changed by setting the `DALIA_CONFIG_PATH` environment variable.
+Dalia expects to find its configuration file at `~/.dalia` but that location 
+can be changed by setting the `DALIA_CONFIG_PATH` environment variable to somewhere
+else and putting a file named `config` there instead.
