@@ -27,5 +27,6 @@ icloud='cd '~/Library/Mobile\ Documents/com~apple~CloudDocs'
 music='cd /Users/johnappleseed/Music'
 ```
 
-Dalia expects the configuration file to be stored at `~/.dalia/config` but the location of the 
+## Customization
+Dalia expects to find the configuration file at `~/.dalia/config` but the location of the 
 configuration file can be changed by setting the `DALIA_CONFIG_PATH` environment variable.
