@@ -75,7 +75,6 @@ fn run() -> Result<(), String> {
     let mut alias_cmd = Command::new(ALIAS_PROGRAM);
     for (alias, path) in config.aliases() {
         alias_cmd.arg(format!(r#"{}=cd "{}""#, alias, path));
-        break;
     }
     let status = alias_cmd
         .status()
