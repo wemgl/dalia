@@ -13,7 +13,7 @@ mod parser;
 const DALIA_CONFIG_ENV_VAR: &str = "DALIA_CONFIG_PATH";
 const CONFIG_FILE: &str = "config";
 const DEFAULT_DALIA_CONFIG_PATH: &str = "~/.dalia";
-const ALIAS_PROGRAM: &str = "alias";
+const ALIAS_PROGRAM: &str = "/usr/bin/alias";
 
 #[derive(Debug)]
 struct Configuration<'a> {
@@ -46,13 +46,11 @@ fn main() {
 }
 
 fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
-    let config_path = match env::var(DALIA_CONFIG_ENV_VAR) {
-        Ok(val) => val,
-        Err(_) => shellexpand::tilde(DEFAULT_DALIA_CONFIG_PATH).to_string(),
-    };
+    let config_path = env::var(DALIA_CONFIG_ENV_VAR)
+        .unwrap_or_else(|_| shellexpand::tilde(DEFAULT_DALIA_CONFIG_PATH).to_string());
 
     let config_filepath =
-        &*(config_path.to_owned() + std::path::MAIN_SEPARATOR.to_string().as_str() + CONFIG_FILE);
+        &*(config_path + std::path::MAIN_SEPARATOR.to_string().as_str() + CONFIG_FILE);
 
     match File::open(config_filepath) {
         Ok(mut config_file) => {
@@ -74,13 +72,13 @@ fn run() -> Result<(), String> {
     config.process_input()?;
     let mut alias_cmd = Command::new(ALIAS_PROGRAM);
     for (alias, path) in config.aliases() {
-        alias_cmd.arg(format!(r#"{}=cd "{}""#, alias, path));
+        alias_cmd.arg(format!("{}='cd {}'", alias, path));
     }
-    let status = alias_cmd
-        .status()
+    let output = alias_cmd
+        .output()
         .expect("alias process failed to create aliases");
-    if !status.success() {
-        return Err(format!("couldn't create aliases: {}", status));
+    if !output.status.success() {
+        return Err(format!("couldn't create aliases: {:?}", output));
     }
     Ok(())
 }
