@@ -30,9 +30,15 @@ photos='cd /Users/johnappleseed/Pictures'
 ```
 
 ## Installation
-Add the following line to your shell configuration file:
+Dalia can only be installed from source at the moment. To install it make sure you have [Rust](https://www.rust-lang.org/tools/install)
+installed. Then, clone this repo and run this command from inside the `dalia` directory and make sure that the resulting executable is
+on your `$PATH`:
 ```
-$ eval "$(dalia aliases)"
+$ cargo install --path .
+```
+Next, add the following line to your shell configuration file:
+```
+$ eval "$(/path/to/cmd/dalia aliases)"
 ```
 This line will generate and output an alias command for configured directory in the current terminal session.
 It's a good idea to include it in whichever configuration file your shell runs at the start of each session so
