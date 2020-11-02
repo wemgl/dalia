@@ -1,6 +1,5 @@
 # Dalia
 
-
 A small commandline utility which creates shell aliases for changing directories quickly based
 on a set of configured paths.
 
@@ -30,11 +29,16 @@ music='cd /Users/johnappleseed/Music'
 photos='cd /Users/johnappleseed/Pictures'
 ```
 
-## Customization
-Dalia expects to find its configuration, in a file named `config`,
-in the directory `~/.dalia`, but that location can be changed by
-setting the `DALIA_CONFIG_PATH` environment variable to somewhere
-else and putting the `config` file in there instead.
+## Installation
+Add the following line to your shell configuration file:
+```
+$ eval "$(dalia aliases)"
+```
+This line will generate and output an alias command for configured directory in the current terminal session.
+It's a good idea to include it in whichever configuration file your shell runs at the start of each session so
+that the aliases are always available.
 
-## Project Status - Unfinished
-Dalia currently doesn't save the generated aliases to the user's shell properly, after they're generated, due to differences in how aliases are handled between shells (i.e. [Bash aliases aren't inherited by child processes, `sh` doens't recognize aliases](https://tldp.org/LDP/Bash-Beginners-Guide/html/sect_03_05.html), and some other [zsh specific considerations](http://zsh.sourceforge.net/Doc/Release/Shell-Grammar.html#Aliasing).
+## Customization
+Dalia expects to find its configuration, in a file named `config`, in the directory `~/.dalia`, but
+that location can be changed by setting the `DALIA_CONFIG_PATH` environment variable to somewhere
+else and putting the `config` file in there instead.

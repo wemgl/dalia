@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::process::{exit, Command};
+use std::process::exit;
 
 use parser::Parser;
 
@@ -13,7 +13,14 @@ mod parser;
 const DALIA_CONFIG_ENV_VAR: &str = "DALIA_CONFIG_PATH";
 const CONFIG_FILE: &str = "config";
 const DEFAULT_DALIA_CONFIG_PATH: &str = "~/.dalia";
-const ALIAS_PROGRAM: &str = "/usr/bin/alias";
+
+const USAGE: &str = r#"Usage: dalia <command>
+    aliases: Generates all shell aliases for each configured directory at DALIA_CONFIG_PATH
+    help: Prints this usage message
+    
+Examples:
+$ dalia aliases
+"#;
 
 #[derive(Debug)]
 struct Configuration<'a> {
@@ -36,13 +43,38 @@ impl<'a> Configuration<'a> {
 }
 
 fn main() {
-    exit(match run() {
-        Ok(_) => 0,
-        Err(e) => {
-            eprintln!("dalia: {}", e);
-            1
+    let args: Vec<String> = env::args().collect();
+    if args.is_empty() || args.len() > 2 {
+        eprintln!("dalia: wrong number of arguments provided.");
+        print_usage();
+        exit(-1)
+    }
+
+    match args.get(1) {
+        Some(cmd) => run_command(cmd),
+        None => {
+            print_usage();
+            exit(-1)
         }
-    })
+    }
+}
+
+fn run_command(cmd: &String) {
+    if &String::from("aliases") == cmd {
+        exit(match run() {
+            Ok(_) => 0,
+            Err(e) => {
+                eprintln!("dalia: {}", e);
+                print_usage();
+                1
+            }
+        })
+    } else if &String::from("help") == cmd {
+        print_usage()
+    } else {
+        eprintln!("dalia: unknown command {}", cmd);
+        print_usage();
+    }
 }
 
 fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
@@ -70,15 +102,19 @@ fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
 fn run() -> Result<(), String> {
     let mut config = load_configuration()?;
     config.process_input()?;
-    let mut alias_cmd = Command::new(ALIAS_PROGRAM);
+
+    let mut aliases = Vec::new();
     for (alias, path) in config.aliases() {
-        alias_cmd.arg(format!("{}='cd {}'", alias, path));
+        aliases.push(format!("alias {}='cd {}'\n", alias, path));
     }
-    let output = alias_cmd
-        .output()
-        .expect("alias process failed to create aliases");
-    if !output.status.success() {
-        return Err(format!("couldn't create aliases: {:?}", output));
+
+    for alias in aliases {
+        print!("{}", alias)
     }
+
     Ok(())
+}
+
+fn print_usage() {
+    println!("{}", USAGE)
 }
