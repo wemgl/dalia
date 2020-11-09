@@ -1,7 +1,6 @@
 # Dalia
 
-A small commandline utility which creates shell aliases for changing directories quickly based
-on a set of configured paths.
+A small commandline utility for creating shell aliases to change directories quickly without needing to type `cd`.
 
 ## Configuration
 Dalia requires a configuration file in order to run properly. The file should contain a list of
@@ -30,13 +29,11 @@ photos='cd /Users/johnappleseed/Pictures'
 ```
 
 ## Installation
-Dalia can only be installed from source at the moment. To install it make sure you have [Rust](https://www.rust-lang.org/tools/install)
-installed. Then, clone this repo and run this command from inside the `dalia` directory and make sure that the resulting executable is
-on your `$PATH`:
+Install like any other Rust crate with:
 ```
-$ cargo install --path .
+$ cargo install dalia
 ```
-Next, add the following line to your shell configuration file:
+Then, add the following line to your shell configuration file:
 ```
 $ eval "$(/path/to/cmd/dalia aliases)"
 ```

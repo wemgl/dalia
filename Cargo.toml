@@ -1,9 +1,15 @@
 [package]
 name = "dalia"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Wembley Leach <wembley@hey.com>"]
 edition = "2018"
 license = "MIT"
+description = "A small utility for generating aliases to change directories without typing `cd`."
+homepage = "https://github.com/wemgl/dalia"
+repository = "https://github.com/wemgl/dalia"
+readme = "README.md"
+keywords = ["alias", "cli"]
+categories = ["command-line-utilities"]
 
 [dependencies]
 shellexpand = "2.0.0"
