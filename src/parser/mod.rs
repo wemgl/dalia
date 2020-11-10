@@ -17,19 +17,17 @@ pub struct Parser<'a> {
 
 impl<'a> Parser<'a> {
     pub fn new(s: &str) -> Self {
-        if s.trim().len() == 0 {
-            panic!("no input provided")
+        if s.trim().is_empty() {
+            panic!("no config file found to parse")
         }
-        let c = s.chars().nth(0).unwrap();
+        let c = s.chars().next().unwrap();
         let mut input = Lexer::new(s, 0, c);
         match input.next_token() {
-            Ok(lookahead) => {
-                return Self {
-                    input,
-                    lookahead,
-                    intrep: HashMap::new(),
-                };
-            }
+            Ok(lookahead) => Self {
+                input,
+                lookahead,
+                intrep: HashMap::new(),
+            },
             Err(e) => panic!("couldn't create new parser: {}", e),
         }
     }

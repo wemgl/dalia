@@ -15,11 +15,18 @@ const CONFIG_FILE: &str = "config";
 const DEFAULT_DALIA_CONFIG_PATH: &str = "~/.dalia";
 
 const USAGE: &str = r#"Usage: dalia <command>
+
+Commands:
     aliases: Generates all shell aliases for each configured directory at DALIA_CONFIG_PATH
     help: Prints this usage message
     
 Examples:
 $ dalia aliases
+
+Environment:
+DALIA_CONFIG_PATH
+    The location where dalia looks for alias configurations. This is set to $HOME/dalia by default.
+    Put the alias configurations in a file named `config` here. 
 "#;
 
 #[derive(Debug)]
@@ -90,12 +97,17 @@ fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
             if let Err(e) = config_file.read_to_string(&mut contents) {
                 return Err(e.to_string());
             }
+            if contents.is_empty() {
+                return Err(
+                    "configuration file is empty; add a few paths to $DALIA_CONFIG_PATH/config and try again.".to_string(),
+                );
+            }
             Ok(Configuration::new(
                 config_filepath.to_string(),
                 Parser::new(&contents),
             ))
         }
-        Err(e) => Err(format!("missing configuration file: {}", e)),
+        Err(_) => Err("missing configuration file; create configs for dalia to load at $DALIA_CONFIG_PATH/config".to_string()),
     }
 }
 

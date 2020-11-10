@@ -1,6 +1,6 @@
 [package]
 name = "dalia"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["Wembley Leach <wembley@hey.com>"]
 edition = "2018"
 license = "MIT"
