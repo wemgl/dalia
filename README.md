@@ -1,5 +1,4 @@
 # Dalia
-
 A small commandline utility for creating shell aliases to change directories quickly without needing to type `cd`.
 
 ## Configuration
@@ -13,7 +12,7 @@ include it at the beginning of the line. If dalia doesn't find a custom name for
 then the alias will be the lowercase basename of the absolute path (e.g. `/some/absolute/path` yields an alias named `path`).
 
 #### Configuration File Example
-Here's an example of a configuration file that `dalia` would load from `$HOME/dalia/config`:
+Here's an example of a configuration file that `dalia` would load from `$HOME/.dalia/config`:
 ```
 [workspace]~/Documents/workspace
 ~/Desktop
@@ -29,21 +28,22 @@ icloud='cd '~/Library/Mobile\ Documents/com~apple~CloudDocs'
 music='cd /Users/johnappleseed/Music'
 photos='cd /Users/johnappleseed/Pictures'
 ```
+Now, once `dalia` loads you can change directories with either `workspace`, `icloud`, or any other configured alias right from your shell.
 
 ## Installation
-Install like any other Rust crate with:
+First, install [Rust](https://www.rust-lang.org/tools/install). Next, run:
 ```
 $ cargo install dalia
 ```
-Then, add the following line to your shell configuration file:
+to install dalia. Finally, add the following line to your shell's configuration file to initialize all aliases:
 ```
 $ eval "$(/path/to/cmd/dalia aliases)"
 ```
-This line will generate and output an alias command for configured directory in the current terminal session.
+This line will generate and output an alias command for each configured path in the current terminal session.
 It's a good idea to include it in whichever configuration file your shell runs at the start of each session so
 that the aliases are always available.
 
 ## Customization
-Dalia expects to find its configuration, in a file named `config`, in the directory `~/.dalia`, but
+Dalia expects to find its configuration, in a file named `config`, in the directory `$HOME/.dalia`, but
 that location can be changed by setting the `DALIA_CONFIG_PATH` environment variable to somewhere
 else and putting the `config` file in there instead.
