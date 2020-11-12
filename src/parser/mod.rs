@@ -117,11 +117,15 @@ impl<'a> Parser<'a> {
     fn expand_glob_paths(&mut self, path: Option<Cow<String>>) -> Result<(), String> {
         let dir: String = path.unwrap().parse().unwrap();
         let paths = read_dir(dir).unwrap();
-
         for path in paths {
-            self.insert_alias_from_path(Some(Cow::Owned(
-                path.unwrap().path().to_str().unwrap().to_string(),
-            )));
+            if let Ok(entry) = path {
+                if entry.metadata().unwrap().is_file() {
+                    continue;
+                }
+                self.insert_alias_from_path(Some(Cow::Owned(
+                    entry.path().to_str().unwrap().to_string(),
+                )));
+            }
         }
 
         Ok(())
