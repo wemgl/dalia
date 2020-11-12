@@ -1,8 +1,12 @@
+#[cfg(test)]
+extern crate temp_testdir;
+
 use std::borrow::Cow;
 use std::collections::HashMap;
+use std::fs::read_dir;
 use std::path::Path;
 
-use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
+use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_GLOB, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
 
 mod lexer;
 
@@ -10,9 +14,9 @@ mod lexer;
 pub struct Parser<'a> {
     /// The lexer responsible for returning tokenized input.
     input: Lexer<'a>,
-    /// The current lookahead token used used by this parser.
+    /// The current lookahead token used by this parser.
     lookahead: lexer::Token<'a>,
-    intrep: HashMap<String, String>,
+    int_rep: HashMap<String, String>,
 }
 
 impl<'a> Parser<'a> {
@@ -26,14 +30,14 @@ impl<'a> Parser<'a> {
             Ok(lookahead) => Self {
                 input,
                 lookahead,
-                intrep: HashMap::new(),
+                int_rep: HashMap::new(),
             },
             Err(e) => panic!("couldn't create new parser: {}", e),
         }
     }
 
     pub fn aliases(&self) -> HashMap<String, String> {
-        self.intrep.to_owned()
+        self.int_rep.to_owned()
     }
 
     fn consume(&mut self) -> Result<(), String> {
@@ -67,28 +71,38 @@ impl<'a> Parser<'a> {
 
     pub fn line(&mut self) -> Result<(), String> {
         let mut alias: Option<Cow<String>> = None;
+        let mut is_glob: bool = false;
         if self.lookahead.kind == TOKEN_LBRACK {
             self.matches(TOKEN_LBRACK)?;
 
-            alias = Some(self.lookahead.text.to_owned());
-            self.alias()?;
+            if self.lookahead.kind == TOKEN_GLOB {
+                is_glob = true;
+                self.glob()?;
+            } else if self.lookahead.kind == TOKEN_ALIAS {
+                alias = Some(self.lookahead.text.to_owned());
+                self.alias()?;
+            }
 
             self.matches(TOKEN_RBRACK)?
         }
         let path: Option<Cow<String>> = Some(self.lookahead.text.to_owned());
         self.path()?;
-        self.add_config(alias, path)?;
+        if is_glob {
+            self.expand_glob_paths(path)?
+        } else {
+            self.add_path_alias(alias, path)?;
+        }
         Ok(())
     }
 
-    fn add_config(
+    fn add_path_alias(
         &mut self,
         alias: Option<Cow<String>>,
         path: Option<Cow<String>>,
     ) -> Result<(), String> {
         match alias {
             Some(a) => {
-                self.intrep.insert(
+                self.int_rep.insert(
                     a.to_owned().parse().unwrap(),
                     path.unwrap().to_owned().parse().unwrap(),
                 );
@@ -100,15 +114,32 @@ impl<'a> Parser<'a> {
         Ok(())
     }
 
+    fn expand_glob_paths(&mut self, path: Option<Cow<String>>) -> Result<(), String> {
+        let dir: String = path.unwrap().parse().unwrap();
+        let paths = read_dir(dir).unwrap();
+
+        for path in paths {
+            self.insert_alias_from_path(Some(Cow::Owned(
+                path.unwrap().path().to_str().unwrap().to_string(),
+            )));
+        }
+
+        Ok(())
+    }
+
     fn insert_alias_from_path(&mut self, path: Option<Cow<String>>) -> Option<String> {
         let dir = path?.into_owned();
         let file_stem = Path::new(&dir).file_stem()?;
         let alias = file_stem.to_str()?;
-        self.intrep.insert(alias.to_lowercase().into(), dir)
+        self.int_rep.insert(alias.to_lowercase(), dir)
     }
 
     fn alias(&mut self) -> Result<(), String> {
         self.matches(TOKEN_ALIAS)
+    }
+
+    fn glob(&mut self) -> Result<(), String> {
+        self.matches(TOKEN_GLOB)
     }
 
     fn path(&mut self) -> Result<(), String> {
@@ -119,6 +150,8 @@ impl<'a> Parser<'a> {
 #[cfg(test)]
 mod tests {
     use std::borrow::Cow;
+    use std::fs::create_dir;
+    use std::path::PathBuf;
 
     use super::*;
 
@@ -201,10 +234,10 @@ mod tests {
         "#,
         );
         p.file()?;
-        assert!(!p.intrep.is_empty());
-        assert_eq!(2, p.intrep.len());
-        assert_eq!("/another/absolute/path", p.intrep.get("alias").unwrap());
-        assert_eq!("/yet/another/path", p.intrep.get("path").unwrap());
+        assert!(!p.int_rep.is_empty());
+        assert_eq!(2, p.int_rep.len());
+        assert_eq!("/another/absolute/path", p.int_rep.get("alias").unwrap());
+        assert_eq!("/yet/another/path", p.int_rep.get("path").unwrap());
         Ok(())
     }
 
@@ -212,7 +245,7 @@ mod tests {
     fn test_parsed_alias_is_lowercase() -> Result<(), String> {
         let mut p = Parser::new("/absolute/Path");
         p.file()?;
-        assert_eq!("/absolute/Path", p.intrep.get("path").unwrap().as_str());
+        assert_eq!("/absolute/Path", p.int_rep.get("path").unwrap().as_str());
         Ok(())
     }
 
@@ -225,12 +258,46 @@ mod tests {
         "#,
         );
         p.file()?;
-        assert!(!p.intrep.is_empty());
-        assert_eq!("~/absolute/Path", p.intrep.get("path").unwrap().as_str());
+        assert!(!p.int_rep.is_empty());
+        assert_eq!("~/absolute/Path", p.int_rep.get("path").unwrap().as_str());
         assert_eq!(
             "~/absolute/Path",
-            p.intrep.get("another-path").unwrap().as_str()
+            p.int_rep.get("another-path").unwrap().as_str()
         );
+        Ok(())
+    }
+
+    #[test]
+    fn test_parse_glob_asterisk() -> Result<(), String> {
+        let temp = temp_testdir::TempDir::default();
+        let file_path = PathBuf::from(temp.as_ref());
+
+        let path1 = format!("{}/one", file_path.to_str().unwrap());
+        if let Err(e) = create_dir(&path1) {
+            return Err(format!("couldn't create temp dir one: {}", e));
+        }
+
+        let path2 = format!("{}/two", file_path.to_str().unwrap());
+        if let Err(e) = create_dir(&path2) {
+            return Err(format!("couldn't create temp dir two: {}", e));
+        }
+
+        let path3 = format!("{}/three", file_path.to_str().unwrap());
+        if let Err(e) = create_dir(&path3) {
+            return Err(format!("couldn't create temp dir three: {}", e));
+        }
+
+        let glob_path = format!("[*]{}", file_path.to_str().unwrap());
+        let mut p = Parser::new(glob_path.as_str());
+
+        p.file()?;
+
+        assert!(!p.int_rep.is_empty());
+        assert_eq!(3, p.int_rep.len());
+        assert_eq!(path1, p.int_rep.get("one").unwrap().to_string());
+        assert_eq!(path2, p.int_rep.get("two").unwrap().to_string());
+        assert_eq!(path3, p.int_rep.get("three").unwrap().to_string());
+
         Ok(())
     }
 }

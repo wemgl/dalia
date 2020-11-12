@@ -63,6 +63,7 @@ name = "dalia"
 version = "1.0.2"
 dependencies = [
  "shellexpand",
+ "temp_testdir",
 ]
 
 [[package]]
@@ -146,6 +147,12 @@ checksum = "9a2b22262a9aaf9464d356f656fea420634f78c881c5eebd5ef5e66d8b9bc603"
 dependencies = [
  "dirs",
 ]
+
+[[package]]
+name = "temp_testdir"
+version = "0.2.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "921f1e9c427802414907a48b21a6504ff6b3a15a1a3cf37e699590949ad9befc"
 
 [[package]]
 name = "wasi"

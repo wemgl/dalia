@@ -1,18 +1,20 @@
 use std::borrow::Cow;
 use std::fmt::Formatter;
 
-const TOKEN_NAMES: [&str; 6] = ["n/a", "<EOF>", "LBRACK", "RBRACK", "ALIAS", "PATH"];
+const TOKEN_NAMES: [&str; 7] = ["n/a", "<EOF>", "LBRACK", "RBRACK", "ALIAS", "PATH", "GLOB"];
 
 pub(crate) const TOKEN_EOF: i32 = 1;
 pub(crate) const TOKEN_LBRACK: i32 = 2;
 pub(crate) const TOKEN_RBRACK: i32 = 3;
 pub(crate) const TOKEN_ALIAS: i32 = 4;
 pub(crate) const TOKEN_PATH: i32 = 5;
+pub(crate) const TOKEN_GLOB: i32 = 6;
 
 const EOF: char = !0 as char;
 
 const UNDERSCORE: char = '_';
 const HYPHEN: char = '-';
+const ASTERISK: char = '*';
 
 /// Token identifies a text and the kind of token it represents.
 #[derive(Debug, Eq, PartialEq)]
@@ -99,6 +101,10 @@ impl<'a> Lexer<'a> {
             || self.cursor.current_char == HYPHEN
     }
 
+    fn is_glob_alias(&self) -> bool {
+        self.cursor.current_char == ASTERISK
+    }
+
     pub(crate) fn next_token(&mut self) -> Result<Token<'a>, String> {
         while self.cursor.current_char != EOF {
             match self.cursor.current_char {
@@ -117,6 +123,8 @@ impl<'a> Lexer<'a> {
                 _ => {
                     if self.is_alias_name() {
                         return self.alias();
+                    } else if self.is_glob_alias() {
+                        return self.glob();
                     } else if self.is_not_end_line() {
                         return self.path();
                     }
@@ -141,6 +149,13 @@ impl<'a> Lexer<'a> {
             self.cursor.consume();
         }
         Ok(Token::new(TOKEN_ALIAS, Cow::Owned(a)))
+    }
+
+    fn glob(&mut self) -> Result<Token<'a>, String> {
+        let mut a: String = String::new();
+        a.push(self.cursor.current_char);
+        self.cursor.consume();
+        Ok(Token::new(TOKEN_GLOB, Cow::Owned(a)))
     }
 
     fn path(&mut self) -> Result<Token<'a>, String> {
@@ -290,5 +305,25 @@ mod tests {
         }
         assert!(!tokens.is_empty());
         assert_eq!(2, tokens.len())
+    }
+
+    #[test]
+    fn test_lexer_parses_glob() {
+        let input = "[*]/some/absolute/path";
+        let mut lexer = Lexer::new(input, 0, '[');
+        let mut tokens: Vec<Token> = Vec::new();
+        while let Ok(t) = lexer.next_token() {
+            if t.kind == TOKEN_EOF {
+                break;
+            }
+            tokens.push(t);
+        }
+        assert_eq!(Token::new(TOKEN_LBRACK, Cow::Owned("[".into())), tokens[0]);
+        assert_eq!(Token::new(TOKEN_GLOB, Cow::Owned("*".into())), tokens[1]);
+        assert_eq!(Token::new(TOKEN_RBRACK, Cow::Owned("]".into())), tokens[2]);
+        assert_eq!(
+            Token::new(TOKEN_PATH, Cow::Owned("/some/absolute/path".into())),
+            tokens[3]
+        );
     }
 }
