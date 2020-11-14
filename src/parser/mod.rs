@@ -3,7 +3,6 @@ extern crate temp_testdir;
 
 use std::borrow::Cow;
 use std::collections::HashMap;
-use std::fs::read_dir;
 use std::path::Path;
 
 use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_GLOB, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
@@ -16,6 +15,7 @@ pub struct Parser<'a> {
     input: Lexer<'a>,
     /// The current lookahead token used by this parser.
     lookahead: lexer::Token<'a>,
+    /// The internal representation of a parsed configuration file.
     int_rep: HashMap<String, String>,
 }
 
@@ -116,7 +116,7 @@ impl<'a> Parser<'a> {
 
     fn expand_glob_paths(&mut self, path: Option<Cow<String>>) -> Result<(), String> {
         let dir: String = path.unwrap().parse().unwrap();
-        let paths = read_dir(dir).unwrap();
+        let paths = std::fs::read_dir(dir).unwrap();
         for path in paths {
             if let Ok(entry) = path {
                 if entry.metadata().unwrap().is_file() {

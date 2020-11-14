@@ -1,10 +1,8 @@
 extern crate shellexpand;
 
 use std::collections::HashMap;
-use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::process::exit;
 
 use parser::Parser;
 
@@ -91,25 +89,25 @@ impl<'a> Configuration<'a> {
 }
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = std::env::args().collect();
     if args.is_empty() || args.len() > 3 {
         eprintln!("dalia: wrong number of arguments provided.");
         print_usage();
-        exit(-1)
+        std::process::exit(-1)
     }
 
     match args.get(1) {
         Some(cmd) => run_command(cmd, &args[1..args.len()]),
         None => {
             print_usage();
-            exit(-1)
+            std::process::exit(-1)
         }
     }
 }
 
 fn run_command(cmd: &str, args: &[String]) {
     if "aliases" == cmd {
-        exit(match run() {
+        std::process::exit(match run() {
             Ok(_) => 0,
             Err(e) => {
                 eprintln!("dalia: {}", e);
@@ -136,7 +134,7 @@ fn run_command(cmd: &str, args: &[String]) {
 }
 
 fn load_configuration<'a>() -> Result<Configuration<'a>, String> {
-    let config_path = env::var(DALIA_CONFIG_ENV_VAR)
+    let config_path = std::env::var(DALIA_CONFIG_ENV_VAR)
         .unwrap_or_else(|_| shellexpand::tilde(DEFAULT_DALIA_CONFIG_PATH).to_string());
 
     let config_filepath =
