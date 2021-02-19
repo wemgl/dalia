@@ -1,8 +1,6 @@
 extern crate shellexpand;
 
-use dalia::parser;
-
-use parser::Parser;
+use dalia::parser::Parser;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
@@ -74,11 +72,11 @@ Description:
 #[derive(Debug)]
 struct Configuration<'a> {
     path: String,
-    parser: parser::Parser<'a>,
+    parser: Parser<'a>,
 }
 
 impl<'a> Configuration<'a> {
-    fn new(path: String, parser: parser::Parser<'a>) -> Self {
+    fn new(path: String, parser: Parser<'a>) -> Self {
         Self { path, parser }
     }
 
