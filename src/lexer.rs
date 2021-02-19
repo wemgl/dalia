@@ -3,12 +3,12 @@ use std::fmt::Formatter;
 
 const TOKEN_NAMES: [&str; 7] = ["n/a", "<EOF>", "LBRACK", "RBRACK", "ALIAS", "PATH", "GLOB"];
 
-pub(crate) const TOKEN_EOF: i32 = 1;
-pub(crate) const TOKEN_LBRACK: i32 = 2;
-pub(crate) const TOKEN_RBRACK: i32 = 3;
-pub(crate) const TOKEN_ALIAS: i32 = 4;
-pub(crate) const TOKEN_PATH: i32 = 5;
-pub(crate) const TOKEN_GLOB: i32 = 6;
+pub const TOKEN_EOF: i32 = 1;
+pub const TOKEN_LBRACK: i32 = 2;
+pub const TOKEN_RBRACK: i32 = 3;
+pub const TOKEN_ALIAS: i32 = 4;
+pub const TOKEN_PATH: i32 = 5;
+pub const TOKEN_GLOB: i32 = 6;
 
 const EOF: char = !0 as char;
 
@@ -18,15 +18,15 @@ const ASTERISK: char = '*';
 
 /// Token identifies a text and the kind of token it represents.
 #[derive(Debug, Eq, PartialEq)]
-pub(crate) struct Token<'a> {
+pub struct Token<'a> {
     /// The specific atom this token represents.
-    pub(crate) kind: i32,
+    pub kind: i32,
     /// The particular text associated with this token when it was parsed.
-    pub(crate) text: Cow<'a, String>,
+    pub text: Cow<'a, String>,
 }
 
 impl<'a> Token<'a> {
-    pub(crate) fn new(kind: i32, text: Cow<'a, String>) -> Self {
+    pub fn new(kind: i32, text: Cow<'a, String>) -> Self {
         Self { kind, text }
     }
 }
@@ -39,7 +39,7 @@ impl<'a> std::fmt::Display for Token<'a> {
 
 /// Cursor allows traversing through an input String character by character while lexing.
 #[derive(Debug)]
-pub(crate) struct Cursor {
+pub struct Cursor {
     /// The input String being processed.
     input: String,
     /// A pointer to the current character.
@@ -71,28 +71,25 @@ impl Cursor {
 
 /// Creates and identifies tokens using the underlying cursor.
 #[derive(Debug)]
-pub(crate) struct Lexer<'a> {
-    pub(crate) cursor: Cursor,
+pub struct Lexer<'a> {
+    pub cursor: Cursor,
     token_names: Vec<&'a str>,
 }
 
 impl<'a> Lexer<'a> {
-    pub(crate) fn new(input: &str, pointer: usize, c: char) -> Self {
+    pub fn new(input: &str, pointer: usize, c: char) -> Self {
         Self {
             cursor: Cursor::new(input, pointer, c),
             token_names: Vec::from(TOKEN_NAMES),
         }
     }
 
-    pub(crate) fn token_names(&self, i: usize) -> String {
+    pub fn token_names(&self, i: usize) -> String {
         self.token_names[i].to_string()
     }
 
     fn is_not_end_line(&self) -> bool {
-        match self.cursor.current_char {
-            '\u{ff}' | '\0' | '\n' => false,
-            _ => true,
-        }
+        !matches!(self.cursor.current_char, '\u{ff}' | '\0' | '\n')
     }
 
     fn is_alias_name(&self) -> bool {
@@ -105,7 +102,7 @@ impl<'a> Lexer<'a> {
         self.cursor.current_char == ASTERISK
     }
 
-    pub(crate) fn next_token(&mut self) -> Result<Token<'a>, String> {
+    pub fn next_token(&mut self) -> Result<Token<'a>, String> {
         while self.cursor.current_char != EOF {
             match self.cursor.current_char {
                 ' ' | '\t' | '\n' | '\r' => {
@@ -122,11 +119,11 @@ impl<'a> Lexer<'a> {
                 }
                 _ => {
                     if self.is_alias_name() {
-                        return self.alias();
+                        return Ok(self.alias());
                     } else if self.is_glob_alias() {
-                        return self.glob();
+                        return Ok(self.glob());
                     } else if self.is_not_end_line() {
-                        return self.path();
+                        return Ok(self.path());
                     }
                     return Err(format!("invalid character {}", self.cursor.current_char));
                 }
@@ -142,29 +139,29 @@ impl<'a> Lexer<'a> {
         }
     }
 
-    fn alias(&mut self) -> Result<Token<'a>, String> {
+    fn alias(&mut self) -> crate::lexer::Token<'a> {
         let mut a: String = String::new();
         while self.is_alias_name() {
             a.push(self.cursor.current_char);
             self.cursor.consume();
         }
-        Ok(Token::new(TOKEN_ALIAS, Cow::Owned(a)))
+        Token::new(TOKEN_ALIAS, Cow::Owned(a))
     }
 
-    fn glob(&mut self) -> Result<Token<'a>, String> {
+    fn glob(&mut self) -> crate::lexer::Token<'a> {
         let mut a: String = String::new();
         a.push(self.cursor.current_char);
         self.cursor.consume();
-        Ok(Token::new(TOKEN_GLOB, Cow::Owned(a)))
+        Token::new(TOKEN_GLOB, Cow::Owned(a))
     }
 
-    fn path(&mut self) -> Result<Token<'a>, String> {
+    fn path(&mut self) -> crate::lexer::Token<'a> {
         let mut p = String::new();
         while self.is_not_end_line() {
             p.push(self.cursor.current_char);
             self.cursor.consume();
         }
-        Ok(Token::new(TOKEN_PATH, Cow::Owned(p)))
+        Token::new(TOKEN_PATH, Cow::Owned(p))
     }
 }
 
@@ -246,21 +243,19 @@ mod tests {
     }
 
     #[test]
-    fn test_lexer_creates_alias_token() -> Result<(), String> {
+    fn test_lexer_creates_alias_token() {
         let mut lexer = Lexer::new("alias", 0, 'a');
-        let token = lexer.alias()?;
+        let token = lexer.alias();
         assert_eq!(TOKEN_ALIAS, token.kind);
         assert_eq!("alias", token.text.as_str());
-        Ok(())
     }
 
     #[test]
-    fn test_lexer_creates_path_token() -> Result<(), String> {
+    fn test_lexer_creates_path_token() {
         let mut lexer = Lexer::new("/some/absolute/path", 0, '/');
-        let token = lexer.path()?;
+        let token = lexer.path();
         assert_eq!(TOKEN_PATH, token.kind);
         assert_eq!("/some/absolute/path", token.text.as_str());
-        Ok(())
     }
 
     #[test]

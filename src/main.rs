@@ -1,18 +1,16 @@
 extern crate shellexpand;
 
+use dalia::parser;
+
+use parser::Parser;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Read;
 
-use parser::Parser;
-
-mod parser;
-
 const DALIA_CONFIG_ENV_VAR: &str = "DALIA_CONFIG_PATH";
 const CONFIG_FILE: &str = "config";
 const DEFAULT_DALIA_CONFIG_PATH: &str = "~/.dalia";
-const VERSION: Option<&'static str> = option_env!("CARGO_PKG_VERSION");
-
+const VERSION: Option<&str> = option_env!("CARGO_PKG_VERSION");
 const USAGE: &str = r#"Usage: dalia <command> [arguments]
 
 Commands:

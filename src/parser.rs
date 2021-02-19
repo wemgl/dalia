@@ -5,16 +5,16 @@ use std::borrow::Cow;
 use std::collections::HashMap;
 use std::path::Path;
 
-use lexer::{Lexer, TOKEN_ALIAS, TOKEN_EOF, TOKEN_GLOB, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK};
-
-mod lexer;
+use crate::lexer::{
+    Lexer, Token, TOKEN_ALIAS, TOKEN_EOF, TOKEN_GLOB, TOKEN_LBRACK, TOKEN_PATH, TOKEN_RBRACK,
+};
 
 #[derive(Debug)]
 pub struct Parser<'a> {
     /// The lexer responsible for returning tokenized input.
     input: Lexer<'a>,
     /// The current lookahead token used by this parser.
-    lookahead: lexer::Token<'a>,
+    lookahead: Token<'a>,
     /// The internal representation of a parsed configuration file.
     int_rep: HashMap<String, String>,
 }
@@ -88,18 +88,14 @@ impl<'a> Parser<'a> {
         let path: Option<Cow<String>> = Some(self.lookahead.text.to_owned());
         self.path()?;
         if is_glob {
-            self.expand_glob_paths(path)?
+            self.expand_glob_paths(path);
         } else {
-            self.add_path_alias(alias, path)?;
+            self.add_path_alias(alias, path);
         }
         Ok(())
     }
 
-    fn add_path_alias(
-        &mut self,
-        alias: Option<Cow<String>>,
-        path: Option<Cow<String>>,
-    ) -> Result<(), String> {
+    fn add_path_alias(&mut self, alias: Option<Cow<String>>, path: Option<Cow<String>>) {
         match alias {
             Some(a) => {
                 self.int_rep.insert(
@@ -111,10 +107,9 @@ impl<'a> Parser<'a> {
                 self.insert_alias_from_path(path);
             }
         }
-        Ok(())
     }
 
-    fn expand_glob_paths(&mut self, path: Option<Cow<String>>) -> Result<(), String> {
+    fn expand_glob_paths(&mut self, path: Option<Cow<String>>) {
         let dir: String = path.unwrap().parse().unwrap();
         let paths = std::fs::read_dir(dir).unwrap();
         for path in paths {
@@ -127,8 +122,6 @@ impl<'a> Parser<'a> {
                 )));
             }
         }
-
-        Ok(())
     }
 
     fn insert_alias_from_path(&mut self, path: Option<Cow<String>>) -> Option<String> {
@@ -163,7 +156,7 @@ mod tests {
     fn test_create_parser() {
         let p = Parser::new("/some/absolute/path");
         assert_eq!(
-            lexer::Token::new(TOKEN_PATH, Cow::Owned("/some/absolute/path".into())),
+            Token::new(TOKEN_PATH, Cow::Owned("/some/absolute/path".into())),
             p.lookahead
         );
     }
@@ -185,7 +178,7 @@ mod tests {
         let mut p = Parser::new("[alias]/some/absolute/path");
         let _ = p.consume();
         assert_eq!(
-            lexer::Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
+            Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
             p.lookahead
         );
     }
@@ -195,7 +188,7 @@ mod tests {
         let mut p = Parser::new("[alias]/some/absolute/path");
         let _ = p.matches(TOKEN_LBRACK);
         assert_eq!(
-            lexer::Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
+            Token::new(TOKEN_ALIAS, Cow::Owned("alias".into())),
             p.lookahead
         );
     }
