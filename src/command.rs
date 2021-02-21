@@ -111,14 +111,14 @@ impl Command {
         }
         let cmd = args.get(1).unwrap();
         match Command::from_str(cmd) {
-            Some(Command::Aliases) => Command::generate_aliases(),
+            Some(Command::Aliases) => generate_aliases(),
             Some(Command::Version) => {
                 print_version();
                 Ok(())
             }
             Some(Command::Help) => {
                 if args.len() == 3 {
-                    return Command::print_help(args[2].as_str());
+                    return print_help(args[2].as_str());
                 }
                 Ok(())
             }
@@ -136,36 +136,36 @@ impl Command {
             _ => None,
         }
     }
-
-    fn print_help(value: &str) -> Result<(), String> {
-        match Command::from_str(value) {
-            Some(Command::Aliases) => print_alias_usage(),
-            Some(Command::Version) => print_version_usage(),
-            Some(Command::Help) => print_usage(),
-            _ => {
-                return Err(format!("unknown command argument {}\n", value));
-            }
-        }
-        Ok(())
-    }
-
-    fn generate_aliases() -> Result<(), String> {
-        let mut config = Configuration::new()?;
-        config.process_input()?;
-
-        let aliases: Vec<String> = config
-            .aliases()
-            .iter()
-            .map(|(alias, path)| format!("alias {}='cd {}'\n", alias, path))
-            .collect();
-
-        aliases.iter().for_each(|alias| print!("{}", alias));
-
-        Ok(())
-    }
 }
 
-pub fn print_usage() {
+fn print_help(value: &str) -> Result<(), String> {
+    match Command::from_str(value) {
+        Some(Command::Aliases) => print_alias_usage(),
+        Some(Command::Version) => print_version_usage(),
+        Some(Command::Help) => print_usage(),
+        _ => {
+            return Err(format!("unknown command argument {}\n", value));
+        }
+    }
+    Ok(())
+}
+
+fn generate_aliases() -> Result<(), String> {
+    let mut config = Configuration::new()?;
+    config.process_input()?;
+
+    let aliases: Vec<String> = config
+        .aliases()
+        .iter()
+        .map(|(alias, path)| format!("alias {}='cd {}'\n", alias, path))
+        .collect();
+
+    aliases.iter().for_each(|alias| print!("{}", alias));
+
+    Ok(())
+}
+
+fn print_usage() {
     println!("{}", USAGE)
 }
 
