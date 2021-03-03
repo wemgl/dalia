@@ -106,9 +106,13 @@ pub enum Command {
 
 impl Command {
     pub fn run(args: Vec<String>) -> Result<(), String> {
-        if args.is_empty() || args.len() == 1 || args.len() > 3 {
+        if args.is_empty() || args.len() > 3 {
             return Err("wrong number of arguments provided.".to_string());
+        } else if args.len() == 1 {
+            print_usage();
+            return Ok(());
         }
+
         let cmd = args.get(1).unwrap();
         match Command::from_str(cmd) {
             Some(Command::Aliases) => generate_aliases(),
@@ -119,10 +123,12 @@ impl Command {
             Some(Command::Help) => {
                 if args.len() == 3 {
                     return print_help(args[2].as_str());
+                } else {
+                    print_usage();
                 }
                 Ok(())
             }
-            _ => {
+            None => {
                 return Err(format!("unknown command: {}", cmd));
             }
         }
@@ -143,8 +149,8 @@ fn print_help(value: &str) -> Result<(), String> {
         Some(Command::Aliases) => print_alias_usage(),
         Some(Command::Version) => print_version_usage(),
         Some(Command::Help) => print_usage(),
-        _ => {
-            return Err(format!("unknown command argument {}\n", value));
+        None => {
+            return Err(format!("unknown command: {}", value));
         }
     }
     Ok(())
